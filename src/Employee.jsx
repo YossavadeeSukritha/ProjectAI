@@ -129,6 +129,25 @@ function Employee() {
                                 </button>
                             </td>
                         </tr>
+
+                        <tr>
+                            <td>1</td>
+                            <td>2024</td>
+                            <td>Yossavadee Sukritha</td>
+                            <td><img src={test} /></td>
+                            <td>01/01/2011</td>
+                            <td>Female</td>
+                            <td>
+                                <Link to="/Edituser">
+                                    <button className='btn-emp'>
+                                        <FaEdit />
+                                    </button>
+                                </Link>
+                                <button className='btn-emp'>
+                                    <RiDeleteBin5Fill />
+                                </button>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>

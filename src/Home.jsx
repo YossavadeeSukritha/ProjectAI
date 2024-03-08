@@ -92,6 +92,18 @@ function Home() {
                             <td>มีความสุข</td>
                             <td>01/01/2011 9:00:01</td>         
                         </tr>
+
+                        <tr>
+                            <td>1</td>
+                            <td>2024</td>
+                            <td>Yossavadee Sukritha</td>
+                            <td><img src={test} /></td>
+                            <td><img src={test} /></td>
+                            <td>24</td>
+                            <td>Female</td>
+                            <td>มีความสุข</td>
+                            <td>01/01/2011 9:00:01</td>         
+                        </tr>
                     </tbody>
                 </table>
             </div>
