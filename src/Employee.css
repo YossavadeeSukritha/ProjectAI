@@ -1,0 +1,147 @@
+.second-search {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    width: 25rem;
+    height: 3rem;
+    position: relative;
+}
+
+input[type="text"] {
+    width: 25rem;
+    height: 100%;
+    padding-left: 2.5rem;
+    border-radius: 10px;
+    border: solid rgb(222, 222, 222) 2px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    color: rgb(0, 0, 0);
+}
+
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgb(161, 161, 161);
+}
+
+.search-button {
+    margin-left: 2rem;
+    border: none;
+    border-radius: 10px;
+    background-color: rgb(255, 119, 0);
+    padding: 0.8rem 1.5rem 0.8rem;
+    color: white;
+}
+
+.search-button:hover {
+    color: rgb(255, 215, 181);
+}
+
+.add-button {
+    margin-left: 1rem;
+    border: solid rgb(255, 119, 0) 2px;
+    border-radius: 10px;
+    background-color: rgb(251, 192, 140);
+    padding: 0.8rem 1.5rem 0.8rem;
+    color: rgb(0, 0, 0);
+}
+
+.add-button:hover {
+    background-color: rgb(255, 119, 0);
+}
+
+.search{
+    margin-bottom: 2.5rem;
+}
+
+.btn-emp{
+    border: none;
+    padding: 0.8rem;
+    background-color: white;
+}
+
+.btn-emp:hover{
+    background-color: rgb(255, 119, 0);
+    color: white;
+}
+
+.table-section{
+    height: 500px;
+    overflow: auto;
+}
+
+table{
+    width: 100%;
+    table-layout: fixed;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+thead th{
+    position: sticky;
+    top: 0;
+    background-color:  rgb(251, 192, 140);
+    color: black;
+    font-size: 1.1rem;
+}
+
+th,td{
+    border-bottom: solid rgb(239, 239, 239) 1px;
+    padding: 1rem 1rem;
+    word-break: break-all;
+    text-align: center;
+}
+
+td img{
+    height: 60px;
+    width: 70px;
+    object-fit: cover;
+}
+
+tr:hover td{
+    cursor: pointer;
+    background-color: rgb(242, 242, 242);
+}
+
+::-webkit-scrollbar{
+    height: 5px;
+    width: 5px;
+}
+
+::-webkit-scrollbar-track{
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+::-webkit-scrollbar-thumb{
+    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+.pagination{
+    display: flex;
+    justify-content: flex-end;
+    width: 100%;
+    padding: 10px 20px;
+    background: rgb(251, 192, 140) ;
+}
+
+.pagination div{
+    padding: 0.5rem;
+    border: solid white 2px;
+    border-radius: 100%;
+    height: 40px;
+    width: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+    margin: 0 5px;
+    cursor: pointer;
+}
+
+.pagination div:hover{
+    background-color: rgb(255, 119, 0);
+    color: rgb(0, 0, 0);
+    border-color:  rgb(255, 119, 0);
+}
