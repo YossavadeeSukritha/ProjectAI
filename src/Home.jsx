@@ -1,12 +1,12 @@
 import './Home.css'
 import Navbar from './Navbar'
-import { FaEdit } from "react-icons/fa";
-import { RiDeleteBin5Fill } from "react-icons/ri";
 import { MdArrowBackIosNew } from "react-icons/md";
 import { MdArrowForwardIos } from "react-icons/md";
 import test from './assets/test.jpeg';
 
+
 function Home() {
+
     return (
         <>
             <Navbar />

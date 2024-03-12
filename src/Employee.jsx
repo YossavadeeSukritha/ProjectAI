@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './Employee.css'
 import Navbar from './Navbar'
@@ -8,6 +10,32 @@ import { MdArrowForwardIos } from "react-icons/md";
 import test from './assets/test.jpeg';
 
 function Employee() {
+    //ดึงจากฐานข้อมูลมาแสดง
+    const [employees, setEmployees] = useState([]);
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
+    const fetchData = async () => {
+        try {
+            const response = await axios.get('http://localhost:8081/Employee'); 
+            setEmployees(response.data);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
+
+    //ลบ employee ในฐานข้อมูล
+    const handleDelete = async (emp_id) => {
+        try {
+            await axios.post('http://localhost:8081/DeleteEmployee', { emp_id });
+            fetchData(); 
+        } catch (error) {
+            console.error('Error deleting employee:', error);
+        }
+    };
+
     return (
         <>
             <Navbar />
@@ -35,119 +63,28 @@ function Employee() {
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
-                                    </button>
-                                </Link>
-                                <button className='btn-emp'>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
-                        </tr>
 
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
+                        {employees.map((employee, index) => (
+                            <tr key={employee.emp_id}>
+                                <td>{index + 1}</td>
+                                <td>{employee.emp_id}</td>
+                                <td>{employee.emp_name}</td>
+                                <td><img src={test} alt="Employee" /></td>
+                                <td>{employee.emp_dob}</td>
+                                <td>{employee.emp_gender}</td>
+                                <td>
                                 <Link to="/Edituser">
                                     <button className='btn-emp'>
                                         <FaEdit />
                                     </button>
                                 </Link>
-                                <button className='btn-emp'>
+                                <button className='btn-emp' onClick={() => handleDelete(employee.emp_id)}>
                                     <RiDeleteBin5Fill />
                                 </button>
                             </td>
-                        </tr>
+                            </tr>
+                        ))}
 
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
-                                    </button>
-                                </Link>
-                                <button className='btn-emp'>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
-                                    </button>
-                                </Link>
-                                <button className='btn-emp'>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
-                                    </button>
-                                </Link>
-                                <button className='btn-emp'>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <td>1</td>
-                            <td>2024</td>
-                            <td>Yossavadee Sukritha</td>
-                            <td><img src={test} /></td>
-                            <td>01/01/2011</td>
-                            <td>Female</td>
-                            <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
-                                    </button>
-                                </Link>
-                                <button className='btn-emp'>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
             </div>
