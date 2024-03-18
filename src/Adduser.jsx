@@ -25,7 +25,7 @@ function Adduser() {
             .then(res => {
                 console.log(res.data.message); 
                 window.alert(res.data.message);
-                if (res.data.message === "Added successfully") {
+                if (res.data.message === "เพิ่ม user เรียบร้อยแล้ว") {
                     window.location.href = "/Employee";
                 }
             })
@@ -103,3 +103,4 @@ function Adduser() {
 }
 
 export default Adduser
+

@@ -22,6 +22,8 @@ const db = mysql.createConnection({
     database: "flask_db"
 })
 
+
+
 app.post('/Login', (req, res) => {
     const sql = "SELECT * FROM admin WHERE admin_email = ? AND admin_password = ?";
     db.query(sql, [req.body.email, req.body.password], (err, data) => {
@@ -29,7 +31,7 @@ app.post('/Login', (req, res) => {
         if (data.length > 0) {
             return res.json({ Status: "Success" })
         } else {
-            return res.json({ Message: "NO Records existed" });
+            return res.json({ Message: "ไม่มีข้อมูล" });
         }
     })
 })
@@ -48,7 +50,7 @@ app.post('/Adduser', (req, res) => {
             return res.status(500).json({ message: "Server side error" });
         }
         console.log("Employee added successfully");
-        return res.json({ message: "Added successfully" });
+        return res.json({ message: "เพิ่ม user เรียบร้อยแล้ว" });
     });
 });
 
@@ -85,6 +87,7 @@ app.post('/DeleteEmployee', (req, res) => {
 });
 
 app.post('/EditEmployee', (req, res) => {
+   
     try {
         const { emp_id, emp_name, emp_dob, emp_gender } = req.body;
         const sql = "UPDATE employee SET emp_name = ?, emp_dob = ?, emp_gender = ? WHERE emp_id = ?";
@@ -110,18 +113,23 @@ app.get('/DetectionDetails', (req, res) => {
         detection.det_img_face,
         detection.det_img_env,
         detection.det_person,
-        detection.det_emo,
+        CASE 
+            WHEN detection.det_person = -1 THEN 'Unknown'
+            ELSE employee.emp_name
+        END AS emp_name,
         detection.det_age,
         detection.det_gender,
+        emotion.emo_name,
         detection.det_added,
-        CASE 
-            WHEN detection.det_person = -1 THEN 'Unknown' 
-            ELSE employee.emp_name 
-        END AS emp_name
+        emotion_text.text
     FROM
         detection
     LEFT JOIN 
-        employee ON detection.det_person = employee.emp_id;
+        employee ON detection.det_person = employee.emp_id
+    LEFT JOIN 
+        emotion_text ON detection.text_id = emotion_text.text_id
+    LEFT JOIN 
+        emotion ON emotion_text.emo_id = emotion.emo_id;
     `;
 
     const search = req.query.search;
@@ -155,8 +163,25 @@ app.get('/DetectionDetails', (req, res) => {
 
 app.get('/EmotionData', (req, res) => {
     const sqlDates = `SELECT DISTINCT det_date FROM detection ORDER BY det_date;`;
-    const sqlEmotionCounts = `SELECT det_date, det_emo, COUNT(*) AS emo_count FROM detection GROUP BY det_date, det_emo;`;
-    
+    const sqlEmotionCounts = `
+        SELECT 
+            detection.det_date,
+            emotion.emo_name AS det_emo,
+            COUNT(*) AS emo_count
+        FROM 
+            detection
+        INNER JOIN 
+            emotion_text ON detection.text_id = emotion_text.text_id
+        INNER JOIN 
+            emotion ON emotion_text.emo_id = emotion.emo_id
+        GROUP BY 
+            detection.det_date, 
+            emotion.emo_name
+        ORDER BY 
+            detection.det_date, 
+            emotion.emo_name;
+    `;
+
     // ดึงวันที่ที่ไม่ซ้ำกัน
     db.query(sqlDates, (err, datesResults) => {
         if (err) {
@@ -178,9 +203,6 @@ app.get('/EmotionData', (req, res) => {
         });
     });
 });
-
-
-
 
 
 app.listen(8081, () => {

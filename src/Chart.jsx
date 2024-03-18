@@ -22,8 +22,18 @@ function Chart() {
     // const toggleFeelingDropdown = () => setFeelingDropdownOpen(prevState => !prevState);
 
     //chart
-    const [chartData, setChartData] = useState({ labels: [], datasets: [] }); 
-    const [options, setOptions] = useState({}); 
+    const [chartData, setChartData] = useState({ labels: [], datasets: [] });
+    const [options, setOptions] = useState({
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    // กำหนดให้แกน Y มีค่าเป็นเลขจำนวนเต็ม
+                    precision: 0
+                }
+            }
+        }
+    });
 
     useEffect(() => {
         axios.get('http://localhost:8081/EmotionData')
@@ -66,10 +76,12 @@ function Chart() {
 
     const getBackgroundColorForEmotion = (emotion) => {
         const colors = {
-            'angry': 'red',
-            'fear': 'purple',
             'happy': 'yellow',
-            'neutral': 'grey'
+            'sad': 'grey',
+            'surprise': 'orange',
+            'neutral': 'aqua',
+            'angry': 'red',
+            'fear': 'purple'
         };
         return colors[emotion] || 'blue';
     };
@@ -111,9 +123,7 @@ function Chart() {
     //     ]
     // }
 
-    // const options = {
 
-    // }
 
     return (
         <>

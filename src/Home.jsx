@@ -60,7 +60,7 @@ function Home() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredDetections.map((det, index) =>(
+                        {filteredDetections.map((det, index) => (
                             <tr key={index}>
                                 <td>{index + 1}</td>
                                 <td>{det.det_person}</td>
@@ -69,7 +69,7 @@ function Home() {
                                 <td><img src={det.det_img_env} alt="Environment" /></td>
                                 <td>{det.det_age}</td>
                                 <td>{det.det_gender}</td>
-                                <td>{det.det_emo}</td>
+                                <td>{det.emo_name}</td>
                                 <td>{det.det_added}</td>
                             </tr>
                         ))}

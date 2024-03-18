@@ -6,9 +6,14 @@ import Navbar from './Navbar'
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Fill } from "react-icons/ri";
 import no_picture from './assets/no_picture.png';
-import imageData from '../images.json';
+// import image101 from './assets/101.jpeg';
+// import image102 from './assets/102.png';
+// import image103 from './assets/103.jpg';
+
 
 function Employee() {
+    // const images = [image101, image102,image103];
+
     //ดึงจากฐานข้อมูลมาแสดง
     const [employees, setEmployees] = useState([]);
 
@@ -24,25 +29,6 @@ function Employee() {
             console.error('Error fetching data:', error);
         }
     };
-
-    // useEffect(() => {
-    //     const fetchData = async () => {
-    //         try {
-    //             const response = await axios.get('http://localhost:8081/Employee');
-    //             const enrichedEmployees = response.data.map(emp => {
-    //                 const imageInfo = imageData.images.find(image => image.emp_id === emp.emp_id.toString());
-    //                 return { ...emp, imagePath: imageInfo ? `./assets/${imageInfo.imagePath}` : null };
-
-    //             });
-
-    //             setEmployees(enrichedEmployees);
-    //         } catch (error) {
-    //             console.error('Error fetching data:', error);
-    //         }
-    //     };
-
-    //     fetchData();
-    // }, []);
 
 
     //ลบ employee ในฐานข้อมูล
@@ -69,9 +55,6 @@ function Employee() {
             employee.emp_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-
-
-
     return (
         <>
             <Navbar />
@@ -92,7 +75,7 @@ function Employee() {
                             <th>ลำดับ</th>
                             <th>ID</th>
                             <th>ชื่อ-นามสกุล</th>
-                            <th>รูป</th>
+                            {/* <th>รูป</th> */}
                             <th>วัน/เดือน/ปีเกิด</th>
                             <th>เพศ</th>
                             <th>Action</th>
@@ -104,11 +87,10 @@ function Employee() {
                                 <td>{index + 1}</td>
                                 <td>{employee.emp_id}</td>
                                 <td>{employee.emp_name}</td>
-                                <td>
-                                    {/* <img src={employee.imagePath || no_picture} alt="Employee" /> */}
+                                {/* <td>
+                                    <img src={index < images.length ? images[index] : no_picture} alt="Employee" />
                                     <img src={no_picture} alt="Employee" />
-
-                                </td>
+                                </td> */}
                                 <td>{employee.emp_dob}</td>
                                 <td>{employee.emp_gender}</td>
                                 <td>
@@ -132,5 +114,8 @@ function Employee() {
 }
 
 export default Employee
+
+
+
 
 
