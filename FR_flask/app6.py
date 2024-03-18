@@ -1,16 +1,16 @@
-from flask import Flask, jsonify, Response, render_template
-from flask_cors import CORS
-import json
-import os
-import cv2
-from deepface import DeepFace
-import os
-from datetime import date
-import numpy as np 
-import base64
+from flask import Flask, render_template,Response, jsonify
 import mysql.connector
+import cv2
+import os
+import time
+import base64
+from datetime import date
+from deepface import DeepFace
+from gtts import gTTS
+from pygame import mixer
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from flask_cors import CORS
+
 
 
 app = Flask(__name__)
@@ -29,6 +29,40 @@ mycursor = mydb.cursor()
 
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+def sound(name, emotion):
+    query = """
+    SELECT emotion_text.text, IFNULL(employee.emp_name, 'unknown') AS emp_name
+    FROM detection 
+    JOIN emotion_text ON detection.text_id = emotion_text.text_id 
+    JOIN emotion ON emotion_text.emo_id = emotion.emo_id 
+    JOIN employee ON detection.det_person = employee.emp_id
+    WHERE emotion.emo_name = %s AND detection.det_person = %s
+    ORDER BY detection.det_id DESC 
+    LIMIT 1
+    """
+    val = (emotion, name)  
+
+    mycursor.execute(query, val)
+    result = mycursor.fetchone()  
+    print(result)
+    if result is None:
+        file = gTTS(text='คุณคือใครฉันไม่รู้จักคุณ' ,lang='th')
+    if result:
+        text_to_speak, user_name = result    
+        file = gTTS(text='คุณ' + user_name + ' ' + text_to_speak, lang='th')
+    else:
+        print("No records found.")
+  
+    filename = 'output.mp3'
+    file.save(filename)
+    mixer.init()
+
+    mixer.music.load(filename)
+    mixer.music.play()
+
+    time.sleep(5)
+    os.remove(filename)
+ 
 
 
 def insert_face(emp_id, emotion, age, gender, imgS_blob, imgL_blob):
@@ -41,15 +75,18 @@ def insert_face(emp_id, emotion, age, gender, imgS_blob, imgL_blob):
     imgL_blob = imgL_encoded.tobytes()
 
     try:
-        mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, det_emo, det_age, det_gender) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                        (str(date.today()), emp_id, imgS_blob, imgL_blob, emotion, age, gender, ))
+        mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) "
+                        "VALUES (%s, %s, %s, %s, (SELECT text_id FROM emotion_text "
+                        "JOIN emotion ON emotion_text.emo_id = emotion.emo_id "
+                        "WHERE emotion.emo_name = %s ORDER BY RAND() LIMIT 1), %s, %s)",
+                        (str(date.today()), emp_id, imgS_blob, imgL_blob, emotion, age, gender))
         mydb.commit()
         print("Image path saved in the database.")
     except Exception as e:
         mydb.rollback()
         print("Error executing INSERT:", e)
 
-executor = ThreadPoolExecutor(max_workers=2)
+
 def analyze_face(face_roi, x, y, w, h, img_flipped, saved_faces):
     try:
         analysis = DeepFace.analyze(face_roi, actions=['emotion', 'age', 'gender'], enforce_detection=False)
@@ -59,40 +96,39 @@ def analyze_face(face_roi, x, y, w, h, img_flipped, saved_faces):
 
         result = DeepFace.find(face_roi, db_path="dataset/", enforce_detection=False)
         if len(result[0]['identity']) > 0:
-            img_id = result['identity'][0].split('/')[-1].split('.')[0]
-            emp_id = None  # Initialize emp_id
+            img_id = result[0]['identity'][0].split('/')[-1].split('.')[0]
             try:
-                mycursor.execute("SELECT img_person FROM img_dataset WHERE img_id = %s", (img_id,))
+                mycursor.execute("select a.img_person "
+                            "  from img_dataset a "
+                            "  left join employee b on a.img_person = b.emp_id "
+                            " where img_id = " + img_id)
+                
+                
                 row = mycursor.fetchone()
-                if row:
-                    emp_id = row[0]
-                else:
-                    emp_id = -1  # Unknown person
+                emp_id = row[0]
             except Exception as e:
                 print("Error executing SQL query or fetching data:", e)
-                emp_id = -1  # Fallback in case of query error
         else:
-            emp_id = -1  # Unknown person
+            emp_id = -1
+        
                
         insert_face(emp_id, emotion, age, gender, face_roi, img_flipped)
-
+        sound(emp_id, emotion)
         face_id = f"{x}-{y}-{w}-{h}"
         saved_faces.add(face_id)
     except Exception as e:
         print("Error in processing:", e)
-
+        
 
 def gen_frames():
-    global executor
     trackers = []  
     saved_faces = set()  
-    futures = []
     wCam, hCam = 400, 400
     cap = cv2.VideoCapture(0)
     cap.set(3, wCam)
     cap.set(4, hCam)
 
-    
+    cnt = 0
     while True:
         success, img = cap.read()
         if not success:
@@ -106,29 +142,20 @@ def gen_frames():
 
         gray_scale = cv2.cvtColor(img_flipped, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray_scale, 1.1, 4)
-
-        for (x, y, w, h) in faces:
-            cv2.rectangle(img_flipped, (x, y), (x+w, y+h), (255, 0, 0), 2)
-
-       
         
+        for (x, y, w, h) in faces:
+            cv2.rectangle(img_flipped, (x, y), (x+w, y+h), (255, 255, 0), 2)    
+            cv2.putText(img_flipped, 'please wait...', (x + 20, y + h + 28), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (153, 255, 255), 2, cv2.LINE_AA)
+
+            
         if not trackers:
             for (x, y, w, h) in faces:
-                face_roi = img_flipped[y:y+h, x:x+w]
-                # Submit tasks to the executor instead of starting new threads directly
-                future = executor.submit(analyze_face, face_roi, x, y, w, h, img_flipped, saved_faces)
-                futures.append(future)
+                face_roi = img_flipped[y:y+h, x:x+w]                
+                threading.Thread(target=analyze_face, args=(face_roi, x, y, w, h, img_flipped, saved_faces)).start()
                 tracker = cv2.legacy.TrackerKCF_create()
+
                 tracker.init(img_flipped, (x, y, w, h))
                 trackers.append(tracker)
-
-        # Optionally, handle completed futures if you need to process results
-        for future in as_completed(futures):
-            try:
-                # Result handling if necessary...
-                future.result()
-            except Exception as exc:
-                print(f'Generated an exception: {exc}')
 
 
     
@@ -154,29 +181,23 @@ def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/countTodayScan', methods=['GET'])
+@app.route('/countTodayScan')
 def countTodayScan():
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="root",
-        passwd="",
-        database="flask_db"
-    )
-    mycursor = mydb.cursor()
-    try:
-        mycursor.execute("SELECT COUNT(*) FROM detection WHERE det_date = CURDATE()")
-        rowcount = mycursor.fetchone()[0]
-        return jsonify({'rowcount': rowcount})
-    except Exception as e:
-        print(f"Error in countTodayScan: {e}")
-        return jsonify({'error': str(e)}), 500
-
+    mycursor.execute("select count(*) "
+                     "  from detection "
+                     " where det_date = curdate() ")
+    row = mycursor.fetchone()
+    rowcount = row[0]
+ 
+    return jsonify({'rowcount': rowcount})
  
 
 @app.route('/loadData', methods=['GET', 'POST'])
 def load_data():
-    mycursor.execute("SELECT a.det_person, a.det_img_face, IFNULL(b.emp_name, 'unknown') AS emp_name, a.det_emo, a.det_age, a.det_gender "
+    mycursor.execute("SELECT a.det_person, a.det_img_face, IFNULL(b.emp_name, 'unknown') AS emp_name, e.emo_name, a.det_age, a.det_gender "
                      "FROM detection a "
+                     "JOIN emotion_text ON emotion_text.text_id = a.text_id "
+                     "JOIN emotion e ON emotion_text.emo_id = e.emo_id "
                      "LEFT JOIN employee b ON a.det_person = b.emp_id "
                      "WHERE a.det_date = CURDATE() "
                      "ORDER BY a.det_added DESC")
@@ -194,8 +215,4 @@ def load_data():
 
 
 if __name__ == '__main__':
-    try:
-        app.run(host='127.0.0.1', port=5000, debug=True)
-    finally:
-        executor.shutdown(wait=True)  # Properly shutdown the executor when the app closes
-        
+    app.run(host='127.0.0.1', port=5001, debug=True)
