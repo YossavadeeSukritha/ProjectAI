@@ -10,7 +10,7 @@ import numpy as np
 import base64
 import mysql.connector
 import threading
-from concurrent.futures import ThreadPoolExecutor  # เพิ่มเข้ามา
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 app = Flask(__name__)
@@ -49,31 +49,30 @@ def insert_face(emp_id, emotion, age, gender, imgS_blob, imgL_blob):
         mydb.rollback()
         print("Error executing INSERT:", e)
 
-
+executor = ThreadPoolExecutor(max_workers=2)
 def analyze_face(face_roi, x, y, w, h, img_flipped, saved_faces):
     try:
         analysis = DeepFace.analyze(face_roi, actions=['emotion', 'age', 'gender'], enforce_detection=False)
         emotion = analysis[0]['dominant_emotion']
         age = analysis[0]['age']
         gender = analysis[0]['dominant_gender']
-        print(emotion,age,gender)
+
         result = DeepFace.find(face_roi, db_path="dataset/", enforce_detection=False)
         if len(result[0]['identity']) > 0:
-            img_id = result[0]['identity'][0].split('/')[-1].split('.')[0]
+            img_id = result['identity'][0].split('/')[-1].split('.')[0]
+            emp_id = None  # Initialize emp_id
             try:
-                mycursor.execute("select a.img_person "
-                            "  from img_dataset a "
-                            "  left join employee b on a.img_person = b.emp_id "
-                            " where img_id = " + img_id)
-                
-                
+                mycursor.execute("SELECT img_person FROM img_dataset WHERE img_id = %s", (img_id,))
                 row = mycursor.fetchone()
-                emp_id = row[0]
+                if row:
+                    emp_id = row[0]
+                else:
+                    emp_id = -1  # Unknown person
             except Exception as e:
                 print("Error executing SQL query or fetching data:", e)
+                emp_id = -1  # Fallback in case of query error
         else:
-            img_id = -1
-        
+            emp_id = -1  # Unknown person
                
         insert_face(emp_id, emotion, age, gender, face_roi, img_flipped)
 
@@ -81,11 +80,13 @@ def analyze_face(face_roi, x, y, w, h, img_flipped, saved_faces):
         saved_faces.add(face_id)
     except Exception as e:
         print("Error in processing:", e)
-        
+
 
 def gen_frames():
+    global executor
     trackers = []  
     saved_faces = set()  
+    futures = []
     wCam, hCam = 400, 400
     cap = cv2.VideoCapture(0)
     cap.set(3, wCam)
@@ -114,11 +115,20 @@ def gen_frames():
         if not trackers:
             for (x, y, w, h) in faces:
                 face_roi = img_flipped[y:y+h, x:x+w]
-                threading.Thread(target=analyze_face, args=(face_roi, x, y, w, h, img_flipped, saved_faces)).start()
+                # Submit tasks to the executor instead of starting new threads directly
+                future = executor.submit(analyze_face, face_roi, x, y, w, h, img_flipped, saved_faces)
+                futures.append(future)
                 tracker = cv2.legacy.TrackerKCF_create()
-
                 tracker.init(img_flipped, (x, y, w, h))
                 trackers.append(tracker)
+
+        # Optionally, handle completed futures if you need to process results
+        for future in as_completed(futures):
+            try:
+                # Result handling if necessary...
+                future.result()
+            except Exception as exc:
+                print(f'Generated an exception: {exc}')
 
 
     
@@ -144,15 +154,23 @@ def video_feed():
     return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-@app.route('/countTodayScan')
+@app.route('/countTodayScan', methods=['GET'])
 def countTodayScan():
-    mycursor.execute("select count(*) "
-                     "  from detection "
-                     " where det_date = curdate() ")
-    row = mycursor.fetchone()
-    rowcount = row[0]
- 
-    return jsonify({'rowcount': rowcount})
+    mydb = mysql.connector.connect(
+        host="localhost",
+        user="root",
+        passwd="",
+        database="flask_db"
+    )
+    mycursor = mydb.cursor()
+    try:
+        mycursor.execute("SELECT COUNT(*) FROM detection WHERE det_date = CURDATE()")
+        rowcount = mycursor.fetchone()[0]
+        return jsonify({'rowcount': rowcount})
+    except Exception as e:
+        print(f"Error in countTodayScan: {e}")
+        return jsonify({'error': str(e)}), 500
+
  
 
 @app.route('/loadData', methods=['GET', 'POST'])
@@ -176,4 +194,8 @@ def load_data():
 
 
 if __name__ == '__main__':
-    app.run(host='127.0.0.1', port=5001, debug=True)
+    try:
+        app.run(host='127.0.0.1', port=5000, debug=True)
+    finally:
+        executor.shutdown(wait=True)  # Properly shutdown the executor when the app closes
+        

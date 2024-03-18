@@ -1,16 +1,13 @@
-from flask import Flask, render_template, request, session, redirect, url_for, Response, jsonify, send_file
+from flask import Flask, render_template,Response, jsonify
 import mysql.connector
-import io
 import cv2
-from PIL import Image
-import numpy as np
 import os
 import time
 import base64
 from datetime import date, datetime
-# import datetime
 from deepface import DeepFace
- 
+from gtts import gTTS
+from pygame import mixer
 app = Flask(__name__)
  
 
@@ -24,56 +21,91 @@ mydb = mysql.connector.connect(
 mycursor = mydb.cursor()
  
  
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Generate dataset >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-def generate_dataset(nbr):
-    # face_classifier = cv2.CascadeClassifier("C:/Users/Erik/PycharmProjects/FlaskOpencv_FaceRecognition/resources/haarcascade_frontalface_default.xml")
-    face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# # <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Generate dataset >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# def generate_dataset(nbr):
+#     # face_classifier = cv2.CascadeClassifier("C:/Users/Erik/PycharmProjects/FlaskOpencv_FaceRecognition/resources/haarcascade_frontalface_default.xml")
+#     face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
     
-    def face_cropped(img):
-        gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        faces = face_cascade.detectMultiScale(gray_scale, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
+#     def face_cropped(img):
+#         gray_scale = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+#         faces = face_cascade.detectMultiScale(gray_scale, scaleFactor=1.1, minNeighbors=5, minSize=(30, 30))
 
  
-        if faces == ():
-            return None
-        for (x, y, w, h) in faces:
-            cropped_face = img[y:y + h, x:x + w]
-        return cropped_face
+#         if faces == ():
+#             return None
+#         for (x, y, w, h) in faces:
+#             cropped_face = img[y:y + h, x:x + w]
+#         return cropped_face
  
-    cap = cv2.VideoCapture(0)
+#     cap = cv2.VideoCapture(0)
  
-    mycursor.execute("select ifnull(max(img_id), 0) from img_dataset")
-    row = mycursor.fetchone()
-    lastid = row[0]
+#     mycursor.execute("select ifnull(max(img_id), 0) from img_dataset")
+#     row = mycursor.fetchone()
+#     lastid = row[0]
  
-    img_id = lastid
-    max_imgid = img_id + 100
-    count_img = 0
+#     img_id = lastid
+#     max_imgid = img_id + 100
+#     count_img = 0
  
-    while True:
-        ret, img = cap.read()
-        if face_cropped(img) is not None:
-            count_img += 1
-            img_id += 1
-            face = cv2.resize(face_cropped(img), (200, 200))
-            face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+#     while True:
+#         ret, img = cap.read()
+#         if face_cropped(img) is not None:
+#             count_img += 1
+#             img_id += 1
+#             face = cv2.resize(face_cropped(img), (200, 200))
+#             face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
  
-            file_name_path = "dataset/"+nbr+"."+ str(img_id) + ".jpg"
-            cv2.imwrite(file_name_path, face)
-            cv2.putText(face, str(count_img), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
+#             file_name_path = "dataset/"+nbr+"."+ str(img_id) + ".jpg"
+#             cv2.imwrite(file_name_path, face)
+#             cv2.putText(face, str(count_img), (50, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 255, 0), 2)
  
-            mycursor.execute("""INSERT INTO `img_dataset` (`img_id`, `img_person`) VALUES
-                                ('{}', '{}')""".format(img_id, nbr))
-            mydb.commit()
+#             mycursor.execute("""INSERT INTO `img_dataset` (`img_id`, `img_person`) VALUES
+#                                 ('{}', '{}')""".format(img_id, nbr))
+#             mydb.commit()
  
-            frame = cv2.imencode('.jpg', face)[1].tobytes()
-            yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+#             frame = cv2.imencode('.jpg', face)[1].tobytes()
+#             yield (b'--frame\r\n'b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
  
-            if cv2.waitKey(1) == 13 or int(img_id) == int(max_imgid):
-                break
-    cap.release()
-    cv2.destroyAllWindows()
- 
+#             if cv2.waitKey(1) == 13 or int(img_id) == int(max_imgid):
+#                 break
+#     cap.release()
+#     cv2.destroyAllWindows()
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Sound >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+
+def sound(name, emotion):
+    query = """
+    SELECT emotion_text.text, IFNULL(employee.emp_name, 'unknown') AS emp_name
+    FROM detection 
+    JOIN emotion_text ON detection.text_id = emotion_text.text_id 
+    JOIN emotion ON emotion_text.emo_id = emotion.emo_id 
+    JOIN employee ON detection.det_person = employee.emp_id
+    WHERE emotion.emo_name = %s AND detection.det_person = %s
+    ORDER BY detection.det_id DESC 
+    LIMIT 1
+    """
+    val = (emotion, name)  
+
+    mycursor.execute(query, val)
+    result = mycursor.fetchone()  
+    print(result)
+    if result is None:
+        file = gTTS(text='คุณคือใครฉันไม่รู้จักคุณ' ,lang='th')
+    if result:
+        text_to_speak, user_name = result    
+        file = gTTS(text='คุณ' + user_name + ' ' + text_to_speak, lang='th')
+    else:
+        print("No records found.")
+  
+    filename = 'output.mp3'
+    file.save(filename)
+    mixer.init()
+
+    mixer.music.load(filename)
+    mixer.music.play()
+
+    time.sleep(5)
+    os.remove(filename)
  
 
 
@@ -156,17 +188,23 @@ def face_recognition():
                                 
                             # เก็บที่อยู่ของไฟล์ในฐานข้อมูล
                             try:
-                                mycursor.execute("INSERT INTO detection (det_date,det_person,det_img_face,det_img_env, det_emo, det_age, det_gender) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                                                (str(date.today()), emp_id,imgS_blob,imgL_blob, emotion, age, gender, ))
+                                mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) "
+                                                "VALUES (%s, %s, %s, %s, (SELECT text_id FROM emotion_text "
+                                                "JOIN emotion ON emotion_text.emo_id = emotion.emo_id "
+                                                "WHERE emotion.emo_name = %s ORDER BY RAND() LIMIT 1), %s, %s)",
+                                                (str(date.today()), emp_id, imgS_blob, imgL_blob, emotion, age, gender))
                                 mydb.commit()
+
+
+
                                 print("Image path saved in the database.")
                             except Exception as e:
                                 mydb.rollback()  # Rollback changes in case of an error
                                 print("Error executing INSERT:", e)
+                            
+                            sound(emp_id,emotion)
 
-                            cv2.putText(img, emp_name + ' | '  + '|' + str(age)+"|"+gender, (x - 10, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (153, 255, 255), 2, cv2.LINE_AA)
-                            cv2.putText(img, emotion, (x, y + h + 40), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (153, 255, 255), 2, cv2.LINE_AA)
-                            time.sleep(1)
+                            
 
                             justscanned = True
                             pause_cnt = 0
@@ -202,14 +240,19 @@ def face_recognition():
                                 if emp_id == 'unknown':
                                     emp_id = -1
 
-                                mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face,det_img_env, det_emo, det_age, det_gender) VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                                                (str(date.today()), emp_id, imgS_blob,imgL_blob, emotion, age, gender))
+                                mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) "
+                                                "VALUES (%s, %s, %s, %s, (SELECT text_id FROM emotion_text "
+                                                "JOIN emotion ON emotion_text.emo_id = emotion.emo_id "
+                                                "WHERE emotion.emo_name = %s ORDER BY RAND() LIMIT 1), %s, %s)",
+                                                (str(date.today()), emp_id, imgS_blob, imgL_blob, emotion, age, gender))
                                 mydb.commit()
 
                                 print("Image path saved in the database.")
                         except Exception as e:
                             mydb.rollback()  # Rollback changes in case of an error
                             print("Error executing INSERT:", e)
+                        
+                        sound(emp_id,emotion)
 
                     cv2.putText(img, 'UNKNOWN', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
 
@@ -282,8 +325,10 @@ def countTodayScan():
 
 @app.route('/loadData', methods=['GET', 'POST'])
 def load_data():
-    mycursor.execute("SELECT a.det_person, a.det_img_face, IFNULL(b.emp_name, 'unknown') AS emp_name, a.det_emo, a.det_age, a.det_gender "
+    mycursor.execute("SELECT a.det_person, a.det_img_face, IFNULL(b.emp_name, 'unknown') AS emp_name, e.emo_name, a.det_age, a.det_gender "
                      "FROM detection a "
+                     "JOIN emotion_text ON emotion_text.text_id = a.text_id "
+                     "JOIN emotion e ON emotion_text.emo_id = e.emo_id "
                      "LEFT JOIN employee b ON a.det_person = b.emp_id "
                      "WHERE a.det_date = CURDATE() "
                      "ORDER BY a.det_added DESC")
@@ -299,61 +344,6 @@ def load_data():
         result.append((det_person, img_base64, emp_name, det_emo, det_age, det_gender))
 
     return jsonify(response=result)
-
-
-
-
-
-
-
-
-
-
-
-# @app.route('/addprsn')
-# def addprsn():
-#     mycursor.execute("select ifnull(max(prs_nbr) + 1, 101) from prs_mstr")
-#     row = mycursor.fetchone()
-#     nbr = row[0]
-#     # print(int(nbr))
- 
-#     return render_template('addprsn.html', newnbr=int(nbr))
- 
-# @app.route('/addprsn_submit', methods=['POST'])
-# def addprsn_submit():
-#     prsnbr = request.form.get('txtnbr')
-#     prsname = request.form.get('txtname')
-#     prsskill = request.form.get('optskill')
- 
-#     mycursor.execute("""INSERT INTO `prs_mstr` (`prs_nbr`, `prs_name`, `prs_skill`) VALUES
-#                     ('{}', '{}', '{}')""".format(prsnbr, prsname, prsskill))
-#     mydb.commit()
- 
-#     # return redirect(url_for('home'))
-#     return redirect(url_for('vfdataset_page', prs=prsnbr))
- 
-# @app.route('/vfdataset_page/<prs>')
-# def vfdataset_page(prs):
-#     return render_template('gendataset.html', prs=prs)
- 
-# @app.route('/vidfeed_dataset/<nbr>')
-# def vidfeed_dataset(nbr):
-#     #Video streaming route. Put this in the src attribute of an img tag
-#     return Response(generate_dataset(nbr), mimetype='multipart/x-mixed-replace; boundary=frame')
- 
- 
-
- 
-
- 
- 
-
-
-# @app.route('/loadImage/<det_id>')
-# def load_image(det_id):
-#     mycursor.execute("SELECT det_img_env FROM detection WHERE det_id = %s", (det_id,))
-#     img_data = mycursor.fetchone()[0]
-#     return Response(img_data, mimetype='image/jpeg')
 
 
  
