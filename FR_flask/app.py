@@ -1,9 +1,6 @@
-from flask import Flask, render_template, request, session, redirect, url_for, Response, jsonify, send_file
+from flask import Flask, render_template,Response, jsonify
 import mysql.connector
-import io
 import cv2
-from PIL import Image
-import numpy as np
 import os
 import time
 import base64
@@ -78,7 +75,7 @@ mycursor = mydb.cursor()
 
 def sound(name, emotion):
     query = """
-    SELECT emotion_text.text, emp_name 
+    SELECT emotion_text.text, IFNULL(employee.emp_name, 'unknown') AS emp_name
     FROM detection 
     JOIN emotion_text ON detection.text_id = emotion_text.text_id 
     JOIN emotion ON emotion_text.emo_id = emotion.emo_id 
@@ -91,24 +88,24 @@ def sound(name, emotion):
 
     mycursor.execute(query, val)
     result = mycursor.fetchone()  
-
+    print(result)
+    if result is None:
+        file = gTTS(text='คุณคือใครฉันไม่รู้จักคุณ' ,lang='th')
     if result:
-        text_to_speak, user_name = result
+        text_to_speak, user_name = result    
         file = gTTS(text='คุณ' + user_name + ' ' + text_to_speak, lang='th')
-        filename = 'output.mp3'
-        file.save(filename)
-        mixer.init()
-    
-        mixer.music.load(filename)
-        mixer.music.play()
-
-        time.sleep(5)
-        os.remove(filename)
-            
     else:
         print("No records found.")
   
+    filename = 'output.mp3'
+    file.save(filename)
+    mixer.init()
 
+    mixer.music.load(filename)
+    mixer.music.play()
+
+    time.sleep(5)
+    os.remove(filename)
  
 
 
@@ -243,18 +240,19 @@ def face_recognition():
                                 if emp_id == 'unknown':
                                     emp_id = -1
 
-                                mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) "                                     
-                                                "VALUES (%s, (SELECT text_id FROM emotion_text "
+                                mycursor.execute("INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) "
+                                                "VALUES (%s, %s, %s, %s, (SELECT text_id FROM emotion_text "
                                                 "JOIN emotion ON emotion_text.emo_id = emotion.emo_id "
-                                                "WHERE emotion.emo_name = %s ORDER BY RAND() LIMIT 1), %s, %s, %s, %s)",
-                                                (str(date.today()), emp_id, imgS_blob, imgL_blob,emotion, age, gender))
+                                                "WHERE emotion.emo_name = %s ORDER BY RAND() LIMIT 1), %s, %s)",
+                                                (str(date.today()), emp_id, imgS_blob, imgL_blob, emotion, age, gender))
                                 mydb.commit()
 
                                 print("Image path saved in the database.")
                         except Exception as e:
                             mydb.rollback()  # Rollback changes in case of an error
                             print("Error executing INSERT:", e)
-                            sound(emp_id,emotion)
+                        
+                        sound(emp_id,emotion)
 
                     cv2.putText(img, 'UNKNOWN', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2, cv2.LINE_AA)
 
