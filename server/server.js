@@ -5,7 +5,7 @@ import cookieParser from 'cookie-parser'
 
 const app = express();
 app.use(express.json());
-app.use(cookieParser()); 
+app.use(cookieParser());
 
 app.use(cors(
     {
@@ -23,7 +23,7 @@ const db = mysql.createConnection({
 })
 
 app.post('/Login', (req, res) => {
-    const sql = "SELECT * FROM employee WHERE email = ? AND password = ?";
+    const sql = "SELECT * FROM admin WHERE admin_email = ? AND admin_password = ?";
     db.query(sql, [req.body.email, req.body.password], (err, data) => {
         if (err) return res.json({ Message: "Server Side Error" });
         if (data.length > 0) {
@@ -39,32 +39,39 @@ app.post('/Logout', (req, res) => {
 });
 
 app.post('/Adduser', (req, res) => {
-    const { emp_id, emp_name, emp_dob, emp_gender, email, password } = req.body;
+    const { emp_id, emp_name, emp_dob, emp_gender } = req.body;
 
-    const sql = "INSERT INTO employee (emp_id, emp_name, emp_dob, emp_gender, email, password) VALUES (?, ?, ?, ?, ?, ?)";
-    db.query(sql, [emp_id, emp_name, emp_dob, emp_gender, email, password], (err, result) => {
+    const sql = "INSERT INTO employee (emp_id, emp_name, emp_dob, emp_gender) VALUES (?, ?, ?, ?)";
+    db.query(sql, [emp_id, emp_name, emp_dob, emp_gender], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Server side error" });
         }
         console.log("Employee added successfully");
-        return res.json({ message: "Employee added successfully" });
+        return res.json({ message: "Added successfully" });
     });
 });
 
 app.get('/Employee', (req, res) => {
-    const sql = "SELECT * FROM employee";
+    let sql = "SELECT * FROM employee";
+    const search = req.query.search;
+
+    if (search) {
+        sql += ` WHERE emp_id LIKE '%${search}%' OR emp_name LIKE '%${search}%'`;
+    }
+
     db.query(sql, (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Server side error" });
         }
-        return res.json(result);
+        res.json(result);
     });
 });
 
+
 app.post('/DeleteEmployee', (req, res) => {
-    const emp_id = req.body.emp_id; 
+    const emp_id = req.body.emp_id;
 
     const sql = "DELETE FROM employee WHERE emp_id = ?";
     db.query(sql, [emp_id], (err, result) => {
@@ -79,9 +86,9 @@ app.post('/DeleteEmployee', (req, res) => {
 
 app.post('/EditEmployee', (req, res) => {
     try {
-        const { emp_id, emp_name, emp_dob, emp_gender, email, password } = req.body;
-        const sql = "UPDATE employee SET emp_name = ?, emp_dob = ?, emp_gender = ?, email = ?, password = ? WHERE emp_id = ?";
-        db.query(sql, [emp_name, emp_dob, emp_gender, email, password, emp_id], (err, result) => {
+        const { emp_id, emp_name, emp_dob, emp_gender } = req.body;
+        const sql = "UPDATE employee SET emp_name = ?, emp_dob = ?, emp_gender = ? WHERE emp_id = ?";
+        db.query(sql, [emp_name, emp_dob, emp_gender, emp_id], (err, result) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: 'Server error' });
@@ -94,6 +101,85 @@ app.post('/EditEmployee', (req, res) => {
         res.status(500).json({ message: 'Server error' });
     }
 });
+
+app.get('/DetectionDetails', (req, res) => {
+    const sql = `
+    SELECT 
+        detection.det_id,
+        detection.det_date,
+        detection.det_img_face,
+        detection.det_img_env,
+        detection.det_person,
+        detection.det_emo,
+        detection.det_age,
+        detection.det_gender,
+        detection.det_added,
+        CASE 
+            WHEN detection.det_person = -1 THEN 'Unknown' 
+            ELSE employee.emp_name 
+        END AS emp_name
+    FROM
+        detection
+    LEFT JOIN 
+        employee ON detection.det_person = employee.emp_id;
+    `;
+
+    const search = req.query.search;
+
+    if (search) {
+        sql += ` WHERE emp_id LIKE '%${search}%' OR emp_name LIKE '%${search}%'`;
+    }
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Server side error');
+        }
+
+        // แปลง BLOB เป็น Base64
+        const detections = results.map(det => {
+            const imgFaceBase64 = Buffer.from(det.det_img_face).toString('base64');
+            const imgEnvBase64 = Buffer.from(det.det_img_env).toString('base64');
+
+            return {
+                ...det,
+                det_img_face: `data:image/jpeg;base64,${imgFaceBase64}`,
+                det_img_env: `data:image/jpeg;base64,${imgEnvBase64}`,
+            };
+        });
+
+        res.json(detections);
+    });
+
+});
+
+app.get('/EmotionData', (req, res) => {
+    const sqlDates = `SELECT DISTINCT det_date FROM detection ORDER BY det_date;`;
+    const sqlEmotionCounts = `SELECT det_date, det_emo, COUNT(*) AS emo_count FROM detection GROUP BY det_date, det_emo;`;
+    
+    // ดึงวันที่ที่ไม่ซ้ำกัน
+    db.query(sqlDates, (err, datesResults) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('เกิดข้อผิดพลาดทางด้านเซิร์ฟเวอร์');
+        }
+
+        // ดึงจำนวนอารมณ์แยกตามวันที่
+        db.query(sqlEmotionCounts, (err, emotionCountsResults) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).send('เกิดข้อผิดพลาดทางด้านเซิร์ฟเวอร์');
+            }
+
+            res.json({
+                dates: datesResults.map(item => item.det_date),
+                emotionCounts: emotionCountsResults
+            });
+        });
+    });
+});
+
+
 
 
 

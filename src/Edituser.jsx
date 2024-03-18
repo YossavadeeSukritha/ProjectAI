@@ -11,8 +11,6 @@ function Edituser() {
         emp_name: '',
         emp_dob: '',
         emp_gender: '',
-        email: '',
-        password: ''
     });
 
     const handleChange = (e) => {
@@ -88,22 +86,6 @@ function Edituser() {
                                         <p className="mb-0">เพศ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
                                         <div className="flex-grow-1 ms-3">
                                             <input className="form-control" type="text" name="emp_gender" onChange={handleChange}/>
-                                        </div>
-                                    </div>
-
-                                    {/* email*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-3">
-                                        <p className="mb-0">email&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="email" onChange={handleChange}/>
-                                        </div>
-                                    </div>
-
-                                    {/* password*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-5">
-                                        <p className="mb-0">password&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="password" onChange={handleChange}/>
                                         </div>
                                     </div>
 

@@ -10,8 +10,6 @@ function Adduser() {
         emp_name: '',
         emp_dob: '',
         emp_gender: '',
-        email: '',
-        password: ''
     });
 
     const handleChange = (e) => {
@@ -26,6 +24,10 @@ function Adduser() {
         axios.post('http://localhost:8081/Adduser', formData)
             .then(res => {
                 console.log(res.data.message); 
+                window.alert(res.data.message);
+                if (res.data.message === "Added successfully") {
+                    window.location.href = "/Employee";
+                }
             })
             .catch(err => console.log(err));
     };
@@ -72,24 +74,6 @@ function Adduser() {
                                 <p className="col-sm-2 col-form-label">เพศ</p>
                                 <div className="col-sm-10">
                                     <input type="text" className="form" name="emp_gender" onChange={handleChange}/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="all-text">
-                            <div className="form-group row">
-                                <p className="col-sm-2 col-form-label">email</p>
-                                <div className="col-sm-10">
-                                    <input type="text" className="form" name="email" onChange={handleChange}/>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="all-text">
-                            <div className="form-group row">
-                                <p className="col-sm-2 col-form-label">password</p>
-                                <div className="col-sm-10">
-                                    <input type="text" className="form" name="password" onChange={handleChange}/>
                                 </div>
                             </div>
                         </div>

@@ -5,9 +5,8 @@ import './Employee.css'
 import Navbar from './Navbar'
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import { MdArrowBackIosNew } from "react-icons/md";
-import { MdArrowForwardIos } from "react-icons/md";
-import test from './assets/test.jpeg';
+import no_picture from './assets/no_picture.png';
+import imageData from '../images.json';
 
 function Employee() {
     //ดึงจากฐานข้อมูลมาแสดง
@@ -19,31 +18,68 @@ function Employee() {
 
     const fetchData = async () => {
         try {
-            const response = await axios.get('http://localhost:8081/Employee'); 
+            const response = await axios.get('http://localhost:8081/Employee');
             setEmployees(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
     };
 
+    // useEffect(() => {
+    //     const fetchData = async () => {
+    //         try {
+    //             const response = await axios.get('http://localhost:8081/Employee');
+    //             const enrichedEmployees = response.data.map(emp => {
+    //                 const imageInfo = imageData.images.find(image => image.emp_id === emp.emp_id.toString());
+    //                 return { ...emp, imagePath: imageInfo ? `./assets/${imageInfo.imagePath}` : null };
+
+    //             });
+
+    //             setEmployees(enrichedEmployees);
+    //         } catch (error) {
+    //             console.error('Error fetching data:', error);
+    //         }
+    //     };
+
+    //     fetchData();
+    // }, []);
+
+
     //ลบ employee ในฐานข้อมูล
     const handleDelete = async (emp_id) => {
         try {
             await axios.post('http://localhost:8081/DeleteEmployee', { emp_id });
-            fetchData(); 
+            fetchData();
         } catch (error) {
             console.error('Error deleting employee:', error);
         }
     };
+
+    //search
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+    };
+
+    // กรองผลลัพธ์ตามคำค้นหา
+    const filteredEmployees = employees.filter(
+        (employee) =>
+            employee.emp_id.toString().includes(searchTerm) ||
+            employee.emp_name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+
+
 
     return (
         <>
             <Navbar />
             <div className="search">
                 <div className="second-search">
-                    <input type="text" placeholder="ค้นหา" />
+                    <input type="text" placeholder="ค้นหา" onChange={handleSearchChange} />
                 </div>
-                <button type='button' className='search-button'>ค้นหา</button>
+                {/* <button type='button' className='search-button'>ค้นหา</button> */}
                 <Link to="/Adduser">
                     <button type='button' className='add-button'>เพิ่ม</button>
                 </Link>
@@ -63,38 +99,34 @@ function Employee() {
                         </tr>
                     </thead>
                     <tbody>
-
-                        {employees.map((employee, index) => (
+                        {filteredEmployees.map((employee, index) => (
                             <tr key={employee.emp_id}>
                                 <td>{index + 1}</td>
                                 <td>{employee.emp_id}</td>
                                 <td>{employee.emp_name}</td>
-                                <td><img src={test} alt="Employee" /></td>
+                                <td>
+                                    {/* <img src={employee.imagePath || no_picture} alt="Employee" /> */}
+                                    <img src={no_picture} alt="Employee" />
+
+                                </td>
                                 <td>{employee.emp_dob}</td>
                                 <td>{employee.emp_gender}</td>
                                 <td>
-                                <Link to="/Edituser">
-                                    <button className='btn-emp'>
-                                        <FaEdit />
+                                    <Link to="/Edituser">
+                                        <button className='btn-emp'>
+                                            <FaEdit />
+                                        </button>
+                                    </Link>
+                                    <button className='btn-emp' onClick={() => handleDelete(employee.emp_id)}>
+                                        <RiDeleteBin5Fill />
                                     </button>
-                                </Link>
-                                <button className='btn-emp' onClick={() => handleDelete(employee.emp_id)}>
-                                    <RiDeleteBin5Fill />
-                                </button>
-                            </td>
+                                </td>
                             </tr>
                         ))}
-
                     </tbody>
                 </table>
             </div>
 
-            <div className="pagination">
-                <div><MdArrowBackIosNew /></div>
-                <div>1</div>
-                <div>2</div>
-                <div><MdArrowForwardIos /></div>
-            </div>
         </>
     )
 }
