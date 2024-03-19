@@ -1,26 +1,35 @@
-import express from 'express'
-import mysql from 'mysql'
-import cors from 'cors'
-import cookieParser from 'cookie-parser'
+const express = require("express");
+const cors = require("cors")
+const bodyParser = require('body-parser');
+
 
 const app = express();
+const PORT = process.env.PORT || 8081;
+
+
+app.use(cors({
+    origin:'http://localhost:1776',
+    methods:['GET', 'POST','PUT','DELETE'],
+}));
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({limit: '50mb', extended: true}));
 app.use(express.json());
-app.use(cookieParser());
 
-app.use(cors(
-    {
-        origin: ["http://127.0.0.1:5173"],
-        methods: ["POST, GET"],
-        credentials: true
-    }
-))
 
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "flask_db"
-})
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+});
+
+
+const mysql = require('mysql2');
+
+const db = mysql.createPool({
+  //connectionLimit: 10,
+  host: 'localhost',
+  user: 'root',
+  password: '123456789admin',
+  database: 'flask_db'
+});
 
 
 
@@ -203,8 +212,3 @@ app.get('/EmotionData', (req, res) => {
         });
     });
 });
-
-
-app.listen(8081, () => {
-    console.log("Server is running on port 8081")
-})

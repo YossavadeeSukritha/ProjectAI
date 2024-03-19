@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql
+    ports:
+      - "3306:3306"
+    # NOTE: use of "mysql_native_password" is not recommended: https://dev.mysql.com/doc/refman/8.0/en/upgrading-from-previous-series.html#upgrade-caching-sha2-password
+    # (this is just an example, not intended to be a production configuration)
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: example  # Set the root password here
+      MYSQL_USER: root  # Set your custom username here
+      MYSQL_PASSWORD: admin  # Set your custom password here
+      MYSQL_DATABASE: "flask_db"  # Specify your custom database name
+
+
+  backend:
+    build:
+      context: ./server
+    ports:
+      - "8081:8081"  # Adjust this port according to your backend configuration
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+    ports:
+      - "1776:1776"  # Adjust this port according to your frontend configuration
+
+volumes:
+  mysql_data:
