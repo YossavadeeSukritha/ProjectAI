@@ -1,12 +1,19 @@
 .search {
     display: flex;
-    justify-content: space-between;
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: 2.5rem;
+    margin-top: 3rem;
+}
+
+.second-search {
+    display: flex;
+    justify-content: center;
     align-items: center;
     margin: auto;
-    width: 100%;
-    padding: 0 1rem;
+    width: 25rem;
+    height: 3rem;
     position: relative;
-    margin-top: 3rem;
 }
 
 .button-container {
@@ -56,7 +63,6 @@ input[type="text"] {
 .search-button {
     margin-left: 2rem;
     border: none;
-    /* border-radius: 10px; */
     background-color: rgb(255, 119, 0);
     padding: 0.8rem 1.5rem 0.8rem;
     color: white;

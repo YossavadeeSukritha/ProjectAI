@@ -51,14 +51,15 @@ function Employee() {
     return (
         <>
             <Navbar />
-            <div className="search">
-                <div className="second-search">
-                    <input type="text" placeholder="ค้นหา" onChange={handleSearchChange} />
+            <div className="search-emp">
+                <div className="second-search-emp">
+                    <input type="text" className='input-text-emp' placeholder="ค้นหา" onChange={handleSearchChange} />
+                    <Link to="/Adduser">
+                        <button type='button' className='add-button'>เพิ่ม</button>
+                    </Link>
                 </div>
-                <Link to="/Adduser">
-                    <button type='button' className='add-button'>เพิ่ม</button>
-                </Link>
             </div>
+
 
             <div className="table-section">
                 <table>
@@ -86,7 +87,7 @@ function Employee() {
                                             <FaEdit />
                                         </button>
                                     </Link>
-                                    <button className='btn-emp'onClick={() => handleDelete(employee.emp_id)}>
+                                    <button className='btn-emp' onClick={() => handleDelete(employee.emp_id)}>
                                         <RiDeleteBin5Fill />
                                     </button>
                                 </td>
