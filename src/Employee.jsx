@@ -5,16 +5,8 @@ import './Employee.css'
 import Navbar from './Navbar'
 import { FaEdit } from "react-icons/fa";
 import { RiDeleteBin5Fill } from "react-icons/ri";
-import no_picture from './assets/no_picture.png';
-// import image101 from './assets/101.jpeg';
-// import image102 from './assets/102.png';
-// import image103 from './assets/103.jpg';
-
 
 function Employee() {
-    // const images = [image101, image102,image103];
-
-    //ดึงจากฐานข้อมูลมาแสดง
     const [employees, setEmployees] = useState([]);
 
     useEffect(() => {
@@ -30,17 +22,6 @@ function Employee() {
         }
     };
 
-
-    //ลบ employee ในฐานข้อมูล
-    const handleDelete = async (emp_id) => {
-        try {
-            await axios.post('http://localhost:8081/DeleteEmployee', { emp_id });
-            fetchData();
-        } catch (error) {
-            console.error('Error deleting employee:', error);
-        }
-    };
-
     //search
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -51,9 +32,21 @@ function Employee() {
     // กรองผลลัพธ์ตามคำค้นหา
     const filteredEmployees = employees.filter(
         (employee) =>
-            employee.emp_id.toString().includes(searchTerm) ||
-            employee.emp_name.toLowerCase().includes(searchTerm.toLowerCase())
+            employee.emp_id.toString().includes(searchTerm) || employee.emp_name.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+    //ลบรูป
+
+    const handleDelete = async (empId) => {
+        try {
+            await axios.delete(`http://localhost:8081/Employee/${empId}`);
+            const updatedEmployees = employees.filter(employee => employee.emp_id !== empId);
+            setEmployees(updatedEmployees);
+
+        } catch (error) {
+            console.error('Error deleting user:', error);
+        }
+    };
 
     return (
         <>
@@ -62,7 +55,6 @@ function Employee() {
                 <div className="second-search">
                     <input type="text" placeholder="ค้นหา" onChange={handleSearchChange} />
                 </div>
-                {/* <button type='button' className='search-button'>ค้นหา</button> */}
                 <Link to="/Adduser">
                     <button type='button' className='add-button'>เพิ่ม</button>
                 </Link>
@@ -75,7 +67,6 @@ function Employee() {
                             <th>ลำดับ</th>
                             <th>ID</th>
                             <th>ชื่อ-นามสกุล</th>
-                            {/* <th>รูป</th> */}
                             <th>วัน/เดือน/ปีเกิด</th>
                             <th>เพศ</th>
                             <th>Action</th>
@@ -87,10 +78,6 @@ function Employee() {
                                 <td>{index + 1}</td>
                                 <td>{employee.emp_id}</td>
                                 <td>{employee.emp_name}</td>
-                                {/* <td>
-                                    <img src={index < images.length ? images[index] : no_picture} alt="Employee" />
-                                    <img src={no_picture} alt="Employee" />
-                                </td> */}
                                 <td>{employee.emp_dob}</td>
                                 <td>{employee.emp_gender}</td>
                                 <td>
@@ -99,7 +86,7 @@ function Employee() {
                                             <FaEdit />
                                         </button>
                                     </Link>
-                                    <button className='btn-emp' onClick={() => handleDelete(employee.emp_id)}>
+                                    <button className='btn-emp'onClick={() => handleDelete(employee.emp_id)}>
                                         <RiDeleteBin5Fill />
                                     </button>
                                 </td>
@@ -108,12 +95,14 @@ function Employee() {
                     </tbody>
                 </table>
             </div>
-
         </>
     )
 }
 
 export default Employee
+
+
+
 
 
 

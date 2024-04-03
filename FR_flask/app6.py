@@ -1,21 +1,20 @@
-from flask import Flask, render_template,Response, jsonify
+from flask import Flask, request, render_template,Response, jsonify
+from werkzeug.utils import secure_filename
 import mysql.connector
 import cv2
 import os
 import time
 import base64
-from datetime import date
+from datetime import date,datetime
 from deepface import DeepFace
 from gtts import gTTS
 from pygame import mixer
 import threading
 from flask_cors import CORS
-
-
+import shutil
 
 app = Flask(__name__)
 CORS(app)
-
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -24,8 +23,6 @@ mydb = mysql.connector.connect(
     database="flask_db"
 )
 mycursor = mydb.cursor()
-
-
 
 
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
@@ -88,37 +85,30 @@ def insert_face(emp_id, emotion, age, gender, imgS_blob, imgL_blob):
 
 
 def analyze_face(face_roi, x, y, w, h, img_flipped, saved_faces):
+    emp_id = -1  # กำหนดค่าเริ่มต้นให้กับ emp_id
     try:
         analysis = DeepFace.analyze(face_roi, actions=['emotion', 'age', 'gender'], enforce_detection=False)
-        emotion = analysis[0]['dominant_emotion']
-        age = analysis[0]['age']
-        gender = analysis[0]['dominant_gender']
+        emotion = analysis['emotion']['dominant_emotion']
+        age = analysis['age']
+        gender = analysis['gender']
 
         result = DeepFace.find(face_roi, db_path="dataset/", enforce_detection=False)
-        if len(result[0]['identity']) > 0:
-            img_id = result[0]['identity'][0].split('/')[-1].split('.')[0]
+        if len(result['identity']) > 0:
+            img_id = result['identity'][0].split('/')[-1].split('.')[0]
             try:
-                mycursor.execute("select a.img_person "
-                            "  from img_dataset a "
-                            "  left join employee b on a.img_person = b.emp_id "
-                            " where img_id = " + img_id)
-                
-                
+                mycursor.execute("SELECT img_person FROM img_dataset a LEFT JOIN employee b ON a.img_person = b.emp_id WHERE img_id = %s", (img_id,))
                 row = mycursor.fetchone()
-                emp_id = row[0]
+                if row:
+                    emp_id = row[0]
             except Exception as e:
                 print("Error executing SQL query or fetching data:", e)
-        else:
-            emp_id = -1
         
-               
         insert_face(emp_id, emotion, age, gender, face_roi, img_flipped)
         sound(emp_id, emotion)
         face_id = f"{x}-{y}-{w}-{h}"
         saved_faces.add(face_id)
     except Exception as e:
         print("Error in processing:", e)
-        
 
 def gen_frames():
     trackers = []  
@@ -212,6 +202,58 @@ def load_data():
         result.append((det_person, img_base64, emp_name, det_emo, det_age, det_gender))
 
     return jsonify(response=result)
+
+# ---------------------- admin -------------------------------------------
+
+#addimg
+@app.route('/saveImage', methods=['POST'])
+def save_image():
+    data = request.get_json()
+    if 'emp_id' not in data or 'imageBase64' not in data:
+        return jsonify({"message": "Missing emp_id or imageBase64"}), 400
+    
+    emp_id = data['emp_id']
+    image_base64 = data['imageBase64'].split(",")[1]
+
+    # ตอนนี้ใช้ emp_id แทน emp_name สำหรับชื่อโฟลเดอร์และไฟล์
+    folder_path = os.path.join('user_img', emp_id)
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    filename = secure_filename(f"{emp_id}.jpg")
+    image_path = os.path.join(folder_path, filename)
+    with open(image_path, 'wb') as image_file:
+        image_file.write(base64.b64decode(image_base64))
+
+    return jsonify({"message": "Image saved successfully", "image_path": image_path}), 200
+
+#deleteimg
+@app.route('/deleteFolder/<empId>', methods=['DELETE'])
+def delete_folder(empId):
+    folder_path = os.path.join('user_img', empId) 
+    try:
+        if os.path.exists(folder_path):
+            shutil.rmtree(folder_path)
+        return jsonify({"message": "Folder deleted successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+#editimg
+@app.route('/updateImage/<empId>', methods=['PUT'])
+def update_image(empId):
+    data = request.get_json()
+    image_base64 = data['imageBase64'].split(",")[1]
+    folder_path = os.path.join('user_img', empId)
+    
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+    
+    filename = secure_filename(f"{empId}.jpg")
+    image_path = os.path.join(folder_path, filename)
+    with open(image_path, 'wb') as image_file:
+        image_file.write(base64.b64decode(image_base64))
+
+    return jsonify({"message": "Image updated successfully", "image_path": image_path}), 200
 
 
 if __name__ == '__main__':

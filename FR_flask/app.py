@@ -109,7 +109,6 @@ def sound(name, emotion):
     os.remove(filename)
  
 
-
 # Initialize variables
 justscanned = False
 pause_cnt = 0

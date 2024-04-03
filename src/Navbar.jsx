@@ -5,7 +5,7 @@ import { FaSignOutAlt } from "react-icons/fa";
 
 function Navbar() {
     const handleLogout = () => {
-        axios.post('http://127.0.0.1:8081/Logout', {})
+        axios.post('http://127.0.0.1:8081/Logout')
             .then(res => {
                 console.log(res.data.Message); 
                 window.location.href = '/'; 

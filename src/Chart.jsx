@@ -49,7 +49,7 @@ function Chart() {
                 });
             })
             .catch(error => {
-                console.error('There was an error fetching the emotion data:', error);
+                console.error('Error fetching:', error);
             });
     }, []);
 

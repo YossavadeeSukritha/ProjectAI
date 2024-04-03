@@ -10,6 +10,7 @@ import Employee from './Employee.jsx';
 import Adduser from './Adduser.jsx';
 import Edituser from './Edituser.jsx';
 
+
 const router = createBrowserRouter([
   {
     path: "/",
@@ -39,6 +40,8 @@ const router = createBrowserRouter([
     path: "/Edituser",
     element: <Edituser />,
   }
+  
+
 
 ]);
 
