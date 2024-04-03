@@ -89,7 +89,10 @@ function Home() {
                     {filteredDetections.map((det, index) => (
                         <div className="card" key={index}>
                             <div className="card-image-container">
-                                        <img src={det.det_img_face} alt="Face" className="card-image" />      
+                                <div className="image-scroll-container">
+                                    <img src={det.det_img_face} alt="Face" className="card-image" />
+                                    <img src={det.det_img_env} alt="Environment" className="card-image" />
+                                </div>
                             </div>
 
                             <div className="card-content">
@@ -103,6 +106,7 @@ function Home() {
                         </div>
                     ))}
                 </div>
+
             )}
 
         </>

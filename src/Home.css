@@ -1,6 +1,6 @@
 .search {
     display: flex;
-    justify-content: space-between; 
+    justify-content: space-between;
     align-items: center;
     margin-bottom: 2.5rem;
     margin-top: 3rem;
@@ -95,16 +95,20 @@ input[type="text"] {
 
 .card-image-container {
     height: 250px;
+    width: 100%;
     position: relative;
     overflow: hidden;
 }
 
 .card-image {
+    flex: 0 0 auto;
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
     object-position: center;
+    scroll-snap-align: start;
+    margin-right: 10px;
 }
 
 .card-content {
@@ -115,4 +119,10 @@ input[type="text"] {
 .card-content h6 {
     margin-bottom: 1rem;
 
+}
+
+.image-scroll-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
 }
