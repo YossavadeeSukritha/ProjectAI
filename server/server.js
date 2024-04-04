@@ -6,16 +6,15 @@ import axios from 'axios';
 
 const app = express();
 //default ตัว Express ไม่สามารถอ่าน req.body ได้ถ้าอยากให้อ่านได้ คือใช้ body-parser หรือใช้ตัว express.json()
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(fileUpload());
 
-app.use(cors(
-    {
-        origin: ["http://127.0.0.1:5173"],
-        methods: ["POST, GET, DELETE, PUT"],
-        credentials: true
-    }
-))
+app.use(cors({
+    origin: ["http://127.0.0.1:5173", "http://127.0.0.1:5001"], // เพิ่ม URL ของ frontend ตู้ kiosk
+    methods: ["POST", "GET", "DELETE", "PUT"],
+    credentials: true
+}));
+
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -76,7 +75,6 @@ app.post('/addEmployee', (req, res) => {
     const { emp_id, emp_name, emp_dob, emp_gender } = req.body;
     const emp_image = req.files.emp_image;
 
-    // บันทึกข้อมูล emp_id, emp_name, emp_dob, emp_gender ลงในฐานข้อมูล
     const sql = 'INSERT INTO employee (emp_id, emp_name, emp_dob, emp_gender) VALUES (?, ?, ?, ?)';
     db.query(sql, [emp_id, emp_name, emp_dob, emp_gender], (err, result) => {
         if (err) {
@@ -87,7 +85,7 @@ app.post('/addEmployee', (req, res) => {
         // แปลงรูปภาพเป็น Base64
         const imageBase64 = `data:${emp_image.mimetype};base64,${emp_image.data.toString('base64')}`;
 
-        // จัดการกับ emp_image: ส่งไปยัง app.py
+        // จัดการกับ emp_image ส่งไป app.py
         axios.post('http://127.0.0.1:5001/saveImage', {
             emp_id: emp_id,
             imageBase64: imageBase64
@@ -155,8 +153,43 @@ app.put('/Employee/:empId', async (req, res) => {
 });
 
 
+//insert พวกที่ detectได้ ลง db
+app.post('/AddDetection', (req, res) => {
+    const { name, emotion, age, gender, face_image, full_image } = req.body;
 
-// ตั้งแต่ตรงนี้ไปต้องแก้ดึงapiจากหุสลงdbก่อน
+    const det_date = new Date();
+    
+    const faceImageBase64 = face_image && face_image.includes("base64,") ? face_image.split(",")[1] : face_image;
+    const fullImageBase64 = full_image && full_image.includes("base64,") ? full_image.split(",")[1] : full_image;
+    
+    if (!faceImageBase64 || !fullImageBase64) {
+        return res.status(400).json({ message: "Invalid image data" });
+    }
+    
+    // แปลงข้อมูลจาก Base64 เป็น Buffer
+    const det_img_face = Buffer.from(faceImageBase64, "base64");
+    const det_img_env = Buffer.from(fullImageBase64, "base64");
+
+    // ตรวจสอบ Buffer ก่อนใช้งาน
+    console.log(det_img_face, det_img_env);
+
+    const sql = "INSERT INTO detection (det_date, det_person, det_img_face, det_img_env, text_id, det_age, det_gender) " +
+                "VALUES (?, ?, ?, ?, (SELECT text_id FROM emotion_text " +
+                "JOIN emotion ON emotion_text.emo_id = emotion.emo_id " +
+                "WHERE emotion.emo_name = ? ORDER BY RAND() LIMIT 1), ?, ?)";
+
+        db.query(sql, [det_date, name, det_img_face, det_img_env, emotion, age, gender], (err, result) => {
+
+        if (err) {
+            console.error('Error inserting detection:', err);
+            return res.status(500).json({ message: "Failed to add detection" });
+        }
+        res.status(200).json({ message: "Detection added successfully" });
+    });
+});
+
+
+// ดึงจาก db detection มาแสดง
 app.get('/DetectionDetails', (req, res) => {
     const sql = `
     SELECT 
@@ -255,6 +288,87 @@ app.get('/EmotionData', (req, res) => {
                 emotionCounts: emotionCountsResults
             });
         });
+    });
+});
+
+app.post('/Speak', (req, res) => {
+    const data = req.body;
+    const { name: user_id, emotion } = data;
+
+    if (user_id === -1) {
+        // Return response for unknown user
+        return res.status(200).json({ text_to_speak: 'คุณคือใครฉันไม่รู้จักคุณ', user_name: null });
+    }
+
+    const sql = `
+        SELECT emotion_text.text, IFNULL(employee.emp_name, 'unknown') AS emp_name
+        FROM detection 
+        JOIN emotion_text ON detection.text_id = emotion_text.text_id 
+        JOIN emotion ON emotion_text.emo_id = emotion.emo_id 
+        JOIN employee ON detection.det_person = employee.emp_id
+        WHERE emotion.emo_name = ? AND detection.det_person = ?
+        ORDER BY detection.det_id DESC 
+        LIMIT 1
+    `;
+    console.log("Received request data:", data);
+    db.query(sql, [emotion, user_id], (err, result) => {
+        if (err) {
+            console.error('Error fetching data from database:', err);
+            return res.status(500).json({ message: "Failed to retrieve data from database." });
+        }
+        console.log("Query result:", result);
+        if (result.length > 0) {
+            const { text, emp_name } = result[0];
+            const text_to_speak = emp_name ? `คุณ${emp_name} ${text}` : text;
+            return res.status(200).json({ text_to_speak, user_name: emp_name });
+        } else {
+            return res.status(404).json({ message: "No records found." });
+        }
+    });
+});
+
+app.get('/countTodayScan',cors(), (req, res) => {
+    // Execute MySQL query to count today's scans
+    db.query("SELECT COUNT(*) AS rowcount FROM detection WHERE DATE(det_date) = CURDATE()", (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Server side error');
+        }
+        // Extract rowcount from query result
+        const rowcount = results[0].rowcount;
+        // Send rowcount as JSON response
+        res.json({ rowcount });
+    });
+});
+app.get('/loadData', cors(), (req, res) => {
+    const query = `
+        SELECT a.det_person, a.det_img_face, IFNULL(b.emp_name, 'unknown') AS emp_name, e.emo_name, a.det_age, a.det_gender 
+        FROM detection a 
+        JOIN emotion_text ON emotion_text.text_id = a.text_id 
+        JOIN emotion e ON emotion_text.emo_id = e.emo_id 
+        LEFT JOIN employee b ON a.det_person = b.emp_id 
+        WHERE a.det_date = CURDATE() 
+        ORDER BY a.det_added DESC
+    `;
+
+    db.query(query, (err, data) => {
+        if (err) {
+            console.error('Error executing MySQL query:', err);
+            res.status(500).json({ error: 'Server side error' });
+            return;
+        }
+
+        const result = data.map(row => ({
+            det_person: row.det_person,
+            img_base64: row.det_img_face ? Buffer.from(row.det_img_face).toString('base64') : null,
+            emp_name: row.emp_name,
+            det_emo: row.emo_name,
+            det_age: row.det_age,
+            det_gender: row.det_gender
+        }));
+
+        res.setHeader('Content-Type', 'application/json');
+        res.json({ response: result });
     });
 });
 

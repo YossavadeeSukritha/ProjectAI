@@ -6,10 +6,7 @@ import { TfiMenu } from "react-icons/tfi";
 import { TfiLayoutGrid2 } from "react-icons/tfi";
 
 function Home() {
-    //table or card
     const [viewMode, setViewMode] = useState('table');
-
-    //ดึงที่ได้จากการ detect มาแสดง
     const [detections, setDetections] = useState([]);
 
     useEffect(() => {
@@ -20,6 +17,7 @@ function Home() {
         try {
             const response = await axios.get('http://localhost:8081/DetectionDetails');
             setDetections(response.data);
+            // console.log(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
         }

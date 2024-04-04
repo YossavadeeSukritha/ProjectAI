@@ -17,6 +17,7 @@ function Employee() {
         try {
             const response = await axios.get('http://localhost:8081/Employee');
             setEmployees(response.data);
+            // console.log(response.data);
         } catch (error) {
             console.error('Error fetching data:', error);
         }
@@ -36,13 +37,12 @@ function Employee() {
     );
 
     //ลบรูป
-
     const handleDelete = async (empId) => {
         try {
             await axios.delete(`http://localhost:8081/Employee/${empId}`);
+            //สร้างarrayใหม่เลือกemployeeที่มี emp_id ไม่ตรงกับ empId ไม่เอาตัวที่ลบมาสร้างarray
             const updatedEmployees = employees.filter(employee => employee.emp_id !== empId);
             setEmployees(updatedEmployees);
-
         } catch (error) {
             console.error('Error deleting user:', error);
         }
@@ -59,7 +59,6 @@ function Employee() {
                     </Link>
                 </div>
             </div>
-
 
             <div className="table-section">
                 <table>

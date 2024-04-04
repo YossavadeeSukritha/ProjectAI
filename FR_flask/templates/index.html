@@ -4,9 +4,10 @@
     {% include "head.html" %}
     <style>
       .emoji {
-          font-size: 34px; /* ปรับขนาดของอิโมจิตามต้องการ */
+        font-size: 34px;
       }
-  </style>
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   </head>
   <body>
     {% include "navbar.html" %}
@@ -21,7 +22,9 @@
           />
         </div>
         <div class="col-md-6" style="height: 500px; overflow-y: auto">
-          <h3 id="scanCount">Number of Scans Today: <span id="scanCountValue">0</span></h5>
+          <h3 id="scanCount">
+            Number of Scans Today: <span id="scanCountValue">0</span>
+          </h3>
           <div id="scandata" class="card-rows">
             <!-- Cards will be dynamically added here -->
           </div>
@@ -29,118 +32,117 @@
       </div>
     </div>
 
+    <script type="text/javascript">
+      $(document).ready(function () {
+        let lastcnt = 0;
+        let cnt;
 
-<script type="text/javascript">
-    $(document).ready(function () {
-      let lastcnt = 0;
-      let cnt;
-      chkNewScan();
-  
-      function chkNewScan() {
-        countTodayScan();
-        setTimeout(chkNewScan, 1000);
-      }
-  
-      function countTodayScan() {
-        $.ajax({
-          url: '/countTodayScan',
-          type: 'GET',
-          dataType: 'json',
-          success: function (data) {
-            cnt = data.rowcount;
-            if (cnt > lastcnt) {
-              reloadCards();
-              updateScanCount(cnt);
-            }
-  
-            lastcnt = cnt;
+        // Function to load detection details from API
+        function loadDetectionDetails() {
+          $.ajax({
+            url: "http://localhost:8081/loadData",
+            type: "GET",
+            dataType: "json",
+            success: function (response) {
+              console.log("Detection:", response);
 
-          },
-          error: function (result) {
-            console.log('Error in countTodayScan:', result);
-          }
-        });
-      }
-  
-      function reloadCards() {
-    $.ajax({
-        url: "/loadData",
-        type: "GET",
-        dataType: "json",
-        success: function (response) {
-            console.log('Response:', response); // Log the response to check its structure
+              // Clear previous cards
+              $("#scandata").empty();
 
-            var cardContainer = $("#scandata");
-            cardContainer.empty();
+              // Make sure to access the data correctly based on the response structure
+              const detections = response.response || response; // Adjust based on actual response structure
 
-            // Display only the latest 4 cards
-            if (response && response.response && Array.isArray(response.response)) {
-                for (let i = 0; i < Math.min(response.response.length, 3); i++) {
-                    const currentItem = response.response[i];
+              // Limit the number of detections to show only the latest 3
+              const latestDetections = detections.slice(0, 3);
 
-                    if (currentItem && Array.isArray(currentItem) && currentItem.length >= 6) {
-                        let emotion = currentItem[3];
-                        let emoji = '';
-                        let emo_name = '';
+              // Iterate through response and create cards for the latest 3 detections
+              latestDetections.forEach(function (currentItem) {
+                let emoji = "";
 
-                        if (emotion === 'happy') {
-                          emoji = '<span class="emoji"> 😊</span>';
-                          emo_name = 'happy'; 
-                        }else if (emotion === 'sad'){
-                          emoji = '<span class="emoji"> 😥</span>'
-                          emo_name = 'sad'; 
-                        }else if (emotion === 'surprice'){
-                          emoji = '<span class="emoji"> 😮</span>'
-                          emo_name = 'surprice'; 
-                        }else if (emotion === 'neutral'){
-                          emoji = '<span class="emoji"> 😐</span>'
-                          emo_name = 'neutral'; 
-                        }else if (emotion === 'angry'){
-                          emoji = '<span class="emoji"> 😡</span>'
-                          emo_name = 'angry'; 
-                        }else if (emotion === 'fear'){
-                          emoji = '<span class="emoji"> 😰</span>'
-                          emo_name = 'fear'; 
-                        }
-
-                       cardContainer.append(
-    '<div class="card mb-3" style="max-width: 450px;max-height:200px">' +
-    '<div class="row g-0">' +
-    '<div class="col-md-4">' +
-    '<img src="data:image/jpeg;base64,' +
-    currentItem[1] +
-    '" class="img-fluid rounded-start" alt="Image">' +
-    '</div>' +
-    '<div class="col-md-8">' +
-    '<div class="card-body">' +
-    '<h5 class="card-text"> ' + currentItem[2] + '</h5>' +
-    '<span class="card-text"><span style="font-size: 34px;margin-bottom:5px">' + (currentItem[5] === 'Man' ? '🧔🏻 ' : '👱🏻‍♀️ ') +'</span>'+ currentItem[4] +'</span>' +
-    '<span class="card-text"><span style="font-size: 34px;">' + emoji +'</span>'+ emo_name +'</span>' +
-    '</div>' +
-    '</div>' +
-    '</div>' +
-    '</div>' +
-    '</div>'
-);
-
-
-
-
-                    }
+                if (currentItem.det_emo === "happy") {
+                  emoji = '<span class="emoji"> 😊</span>';
+                } else if (currentItem.det_emo === "sad") {
+                  emoji = '<span class="emoji"> 😥</span>';
+                } else if (currentItem.det_emo === "surprice") {
+                  emoji = '<span class="emoji"> 😮</span>';
+                } else if (currentItem.det_emo === "neutral") {
+                  emoji = '<span class="emoji"> 😐</span>';
+                } else if (currentItem.det_emo === "angry") {
+                  emoji = '<span class="emoji"> 😡</span>';
+                } else if (currentItem.det_emo === "fear") {
+                  emoji = '<span class="emoji"> 😰</span>';
                 }
-            }
-        },
-        error: function (result) {
-            console.log('Error in reloadCards:', result);
-        }
-    });
-}
 
-      function updateScanCount(count) {
-          // Update the content of the span with the scan count
+                const cardHtml = `
+                <div class="card mb-3" style="max-width: 450px; max-height:200px">
+                    <div class="row g-0">
+                        <div class="col-md-4">
+                            <img src="data:image/jpeg;base64,${
+                              currentItem.img_base64
+                            }" alt="Image" style="width: 100%;">
+
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card-body">
+                                <h5 class="card-text">${
+                                  currentItem.emp_name
+                                }</h5>
+                                <span class="card-text"><span style="font-size: 34px;margin-bottom:5px">${
+                                  currentItem.det_gender === "Man"
+                                    ? "🧔🏻 "
+                                    : "👱🏻‍♀️ "
+                                } </span>${currentItem.det_age}</span>
+                                <span class="card-text">${emoji} ${
+                  currentItem.det_emo
+                }</span>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+                // Append card HTML to container
+                $("#scandata").append(cardHtml);
+              });
+            },
+            error: function (error) {
+              console.log("Error in loadDetectionDetails:", error);
+              // Optionally, inform the user that data couldn't be loaded
+            },
+          });
+        }
+
+        // Function to update scan count
+        function updateScanCount(count) {
           $("#scanCountValue").text(count);
         }
-    });
-  </script>  
+
+        // Function to periodically update detection details and scan count
+        function updateData() {
+          loadDetectionDetails();
+          countTodayScan();
+          setTimeout(updateData, 1000); // Update every 10 seconds
+        }
+
+        // Function to get today's scan count
+        function countTodayScan() {
+          $.ajax({
+            url: "http://localhost:8081/countTodayScan",
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+              updateScanCount(data.rowcount);
+            },
+            error: function (result) {
+              console.log("Error in countTodayScan:", result);
+            },
+          });
+        }
+
+        // Initial setup
+        updateData();
+      });
+    </script>
   </body>
 </html>

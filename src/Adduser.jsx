@@ -14,7 +14,6 @@ function Adduser() {
         formData.append('emp_image', e.target.emp_image.files[0]);
 
         try {
-            // ส่งไป server.js
             await axios.post('http://localhost:8081/addEmployee', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',

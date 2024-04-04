@@ -30,7 +30,6 @@ function Edituser() {
             <form onSubmit={handleSubmit}>
                 <div className="container-xl px-4 mt-4">
                     <div className="row">
-
                         <div className="col-xl-4">
                             <div className="card mb-4 mb-xl-0">
                                 <div className="card-header">Profile Picture</div>
@@ -43,47 +42,39 @@ function Edituser() {
                         </div>
                         <div className="col-xl-8">
                             {/* Account details card*/}
-                            <div className="card mb-4">
+                            <div className="card ">
                                 <div className="card-header">Profile Details</div>
                                 <div className="card-body">
 
                                     {/*ID*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-3 mt-4 ">
-                                        <p className="mb-0">ID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="emp_id" />
-                                        </div>
+                                    <div className="form-group">
+                                        <label className="form-label">ID</label>
+                                        <input className="form-input form-control" type="text" name="emp_id" />
                                     </div>
 
-                                    {/* ชื่อ-นามสกุล*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-3">
-                                        <p className="mb-0">ชื่อ-นามสกุล&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="emp_name" />
-                                        </div>
+                                    {/* Name */}
+                                    <div className="form-group">
+                                        <label className="form-label">ชื่อ-นามสกุล</label>
+                                        <input className="form-input form-control" type="text" name="emp_name" />
                                     </div>
 
-                                    {/* วัน/เดือน/ปีเกิด*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-3">
-                                        <p className="mb-0">วัน/เดือน/ปีเกิด&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="emp_dob" />
-                                        </div>
+                                    {/* Date of Birth */}
+                                    <div className="form-group">
+                                        <label className="form-label">วัน/เดือน/ปีเกิด</label>
+                                        <input className="form-input form-control" type="text" name="emp_dob" />
                                     </div>
 
-                                    {/* เพศ*/}
-                                    <div className="d-flex align-items-center justify-content-between mb-3">
-                                        <p className="mb-0">เพศ&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
-                                        <div className="flex-grow-1 ms-3">
-                                            <input className="form-control" type="text" name="emp_gender" />
-                                        </div>
+                                    {/* Gender */}
+                                    <div className="form-group">
+                                        <label className="form-label">เพศ</label>
+                                        <input className="form-input form-control" type="text" name="emp_gender" />
                                     </div>
 
                                     {/* button*/}
                                     <div className="btn-edit">
                                         <button type="submit" className="btn-confirm">ยืนยัน</button>
                                         <Link to="/Employee">
-                                            <button type="button" className="btn-cancle">ยกเลิก</button>
+                                            <button type="button" className="btn-cancel">ยกเลิก</button>
                                         </Link>
                                     </div>
                                 </div>

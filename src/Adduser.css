@@ -64,17 +64,5 @@
 .form{
     margin-left: 2rem;
     width: 70%;
-
+    padding: 0.5rem;
 }
-
-/* @media (max-width: 768px) {
-    .btn-add {
-        margin-left: 0; 
-    }
-}
-
-@media (min-width: 769px) {
-    .btn-add {
-        margin-left: 15rem; 
-    }
-} */
